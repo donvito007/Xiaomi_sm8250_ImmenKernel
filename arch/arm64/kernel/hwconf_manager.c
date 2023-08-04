@@ -30,6 +30,13 @@ typedef struct hw_item {
 	char value[MAX_LEN_STR];
 } hw_item;
 
+static char *hw_item_dump(void); // Function prototype
+
+static char *hw_item_dump(void) {
+    // Function implementation
+    // ...
+}
+
 struct hw_info_manager {
 	struct hw_item *hw_monitor;
 	struct crypto_cipher *tfm;
