@@ -20,22 +20,66 @@
 #include <asm/setup.h>
 #include <asm/hwconf_manager.h>
 
+#include <linux/slab.h>
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/crypto.h>
+#include <linux/kobject.h>
+
 #define MAX_LEN_STR 256
-char *print_buf;
 
 typedef struct hw_item {
-	struct hw_item *next;
-	struct hw_item *child;
-	char name[MAX_LEN_STR];
-	char value[MAX_LEN_STR];
+    struct hw_item *next;
+    struct hw_item *child;
+    char name[MAX_LEN_STR];
+    char value[MAX_LEN_STR];
 } hw_item;
 
-static char *hw_item_dump(void); // Function prototype
+static char *hw_item_dump(const hw_item *item);
 
-static char *hw_item_dump(void) {
-    // Function implementation
-    // ...
+struct hw_info_manager {
+    struct hw_item *hw_monitor;
+    struct crypto_cipher *tfm;
+    struct kobject *hwconf_kobj;
+    struct dentry *hwconf_check;
+    int hw_mon_inited;
+};
+
+struct hw_info_manager *info_manager;
+
+void hw_item_free(hw_item *item) {
+    hw_item *next;
+
+    while (item) {
+        next = item->next;
+        if (item->child)
+            hw_item_free(item->child);
+        kfree(item);
+        item = next;
+    }
 }
+
+hw_item *hw_item_get_child(hw_item *root, const char *name) {
+    hw_item *item = root->child;
+
+    while (item && strncmp(item->name, name, MAX_LEN_STR) != 0)
+        item = item->next;
+
+    return item;
+}
+
+static char *hw_item_dump(const hw_item *item) {
+    char *dump = kmalloc(MAX_LEN_STR * 4, GFP_KERNEL); // Allocate memory for dump
+    if (!dump)
+        return NULL;
+
+    snprintf(dump, MAX_LEN_STR * 4, "Name: %s\nValue: %s\n", item->name, item->value);
+    
+    return dump;
+}
+
+// Additional code related to module initialization and cleanup can go here
+
 
 struct hw_info_manager {
 	struct hw_item *hw_monitor;
